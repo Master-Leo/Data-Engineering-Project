@@ -1,5 +1,6 @@
 #ignore api key
-config.py
+test_config.py
+comfig.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

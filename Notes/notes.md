@@ -21,3 +21,58 @@ Census data can be a valuable resource for businesses in solving various issues 
 10. Long-term strategic planning: Census data, collected periodically over time, allows businesses to observe and analyze demographic trends, economic shifts, and changes in consumer behavior. By incorporating this data into their long-term strategic planning, businesses can anticipate future market conditions, identify emerging opportunities, and align their business models accordingly.
 
 Overall, census data provides businesses with valuable insights into markets, customers, workforce, and economic conditions. By leveraging this data effectively, businesses can make informed decisions, optimize their operations, and develop business models that align with the needs and characteristics of their target markets.
+
+
+If your API key is stored in a config file that your script calls, you can pass the path to the config file as an environment variable in Docker using the `-v` flag to mount the file and the `-e` flag to set the environment variable.
+
+
+
+
+
+
+
+
+
+Assuming your config file is named `config.ini` and located in the same directory as your script, you can run the container with the following command:
+
+```
+docker run -v $(pwd)/config.ini:/app/config.ini -e CONFIG_PATH=/app/config.ini myimage
+```
+
+In this example, we mount the `config.ini` file from the host machine to the `/app/config.ini` path inside the container. Then, we set the environment variable `CONFIG_PATH` to `/app/config.ini` using the `-e` flag.
+
+Inside your script, you can read the API key from the config file using the `CONFIG_PATH` environment variable. Here's an example:
+
+```python
+import os
+import configparser
+
+config_path = os.environ.get('CONFIG_PATH')
+
+config = configparser.ConfigParser()
+config.read(config_path)
+
+api_key = config.get('API', 'API_KEY')
+
+# Use the API key in your script
+```
+
+Regarding changing the `state` variable for the Census API, you can pass it as an environment variable as well. Assuming you want to change the state to "California", you can use the `-e` flag like this:
+
+```
+docker run -e STATE=California myimage
+```
+
+Inside your script, you can access the `STATE` environment variable to retrieve the desired state. Here's an example:
+
+```python
+import os
+
+state = os.environ.get('STATE', 'default_state')
+
+# Use the state variable in your script
+```
+
+In this example, the `os.environ.get()` function retrieves the value of the `STATE` environment variable. If the variable is not set, it will use the value `'default_state'` as a fallback.
+
+Remember to adjust the variable names and values according to your specific use case.
