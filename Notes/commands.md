@@ -38,3 +38,12 @@ docker run myapp -f Dockerfile.app
 This will run a container based on the `myapp` image, using the instructions specified in `Dockerfile.app`.
 
 Having multiple Dockerfiles allows you to customize the build process for different components or services in your project.
+
+
+# Kaggle API Directions
+1. pip install kaggle
+2. mv kaggle.json ~/.kaggle/kaggle.json
+3. chmod 600 ~/.kaggle.kaggle.json
+
+
+# Census API Directions 
