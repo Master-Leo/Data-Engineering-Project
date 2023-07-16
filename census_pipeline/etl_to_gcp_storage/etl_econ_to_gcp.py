@@ -2,21 +2,16 @@ import os
 import sys
 import pandas as pd
 from pathlib import Path 
-from typing import List
+from typing import List, Tuple
 from census import Census 
 from us import states
 from prefect import flow, task
 from google.cloud import storage
 
 from config import api_key, project_bucket
-import tenacity
 
-@tenacity.retry(
-    wait=tenacity.wait_fixed(5),  # Wait for 5 seconds between retries
-    stop=tenacity.stop_after_attempt(3),  # Retry for a maximum of 3 attempts
-)
 @task(log_prints=True, tags=['extract'])
-def extract_economic_data(year: int, state: str, api_key: str):
+def extract_economic_data(year: int, state: str, api_key: str) -> List[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     # Create Census object
     c = Census(api_key, year=year)
     variables = [
@@ -97,7 +92,7 @@ def extract_economic_data(year: int, state: str, api_key: str):
     return state_df, city_df, zip_code_df
 
 @task(log_prints=True)
-def transform_data(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df : pd.DataFrame) -> pd.DataFrame:
+def transform_data(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df : pd.DataFrame) -> List[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     def calculate_rates(df: pd.DataFrame) -> pd.DataFrame:
         df["poverty_rate"] = 100 * df['poverty_count'].astype(int) / df["population"].astype(int)
         df["unemployment_rate"] = 100 * df["unemployment_count"].astype(int) / df["population"].astype(int)
@@ -136,27 +131,18 @@ def transform_data(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df : 
     return state_df, city_df, zip_code_df
 
 
-@task(log_prints=True)   
-def write_local(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df: pd.DataFrame, dataset_state_file: str, dataset_city_file: str, dataset_zip_file: str):
-    'Writing DataFrame locally then as a parquet file'
+def write_gcs(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df: pd.DataFrame, dataset_state_file: str, dataset_city_file: str, dataset_zip_file: str) -> None:
+    bucket_name = project_bucket
+    client = storage.Client()
+    bucket = client.get_bucket(bucket_name)
+
     datasets = [state_df, city_df, zip_code_df]
     filenames = [dataset_state_file, dataset_city_file, dataset_zip_file]
-    paths = []
 
     for df, filename in zip(datasets, filenames):
         path = Path(f'data/economic/{filename}.parquet')
         df.to_parquet(path, compression='gzip')
-        paths.append(path)
 
-    return tuple(paths)
-
-@task(log_prints=True)
-def write_gcs(paths: List[Path]) -> None:
-    bucket_name = project_bucket
-    client = storage.Client()
-    bucket = client.get_bucket(bucket_name)
-    
-    for path in paths:
         destination = str(path)
         # Extract the relative path within the data directory
         relative_path = destination.split('data/')[1]
@@ -164,8 +150,9 @@ def write_gcs(paths: List[Path]) -> None:
         final_destination = f'data/{relative_path}'
         gcp = bucket.blob(final_destination)
         gcp.upload_from_filename(destination)
+        os.remove(path)
 
-    return 
+    return
 
 @flow()  
 def etl_api_to_gcs(year: int, state: str, api_key: str) -> None:
@@ -174,18 +161,16 @@ def etl_api_to_gcs(year: int, state: str, api_key: str) -> None:
     dataset_zip_file = f'zip_code/{year}_zip_economic_data'
 
     state_df, city_df, zip_code_df = extract_economic_data(year, state, api_key)
-    state_df, city_df, zip_code_df  = transform_data(state_df, city_df, zip_code_df )
-    path_one, path_two, path_three = write_local(state_df, city_df, zip_code_df, dataset_state_file, dataset_city_file, dataset_zip_file)
-    write_gcs([path_one, path_two, path_three])
+    state_df, city_df, zip_code_df  = transform_data(state_df, city_df, zip_code_df)
+    write_gcs(state_df, city_df, zip_code_df, dataset_state_file, dataset_city_file, dataset_zip_file)
 
 @flow
 def etl_econ_parent_flow() -> None:
     years = list(range(2021, 2015, -1))
     states_list = ['California','Florida','New York','Texas','Pennsylvania']
 
-    for state in states_list:
-        for year in years:
-            etl_api_to_gcs(year, state, api_key)
+    [etl_api_to_gcs(year, state, api_key) for state in states_list for year in years]
+
 
 if __name__ == '__main__':
     etl_econ_parent_flow()

@@ -49,6 +49,7 @@ def transformation(csv_path: Path, years: list, states: list) -> pd.DataFrame:
 
     print(df.dtypes)
     print(df.isnull().sum())
+    os.remove(csv_path)
     return df 
 
 @task(log_prints=True, tags='Load_part_one')
@@ -64,13 +65,13 @@ def write_gcs(path: Path) -> None:
     bucket = client.get_bucket(bucket_name)
     
     # Construct the destination path in GCS
-    destination = f"data/real_estate/{path.name}"
+    destination = str(path)
     
     # Upload the file to GCS
     gcs = bucket.blob(destination)
-    gcs.upload_from_filename(str(path))
+    gcs.upload_from_filename(destination)
 
-    os.remove('./data/real_estate/real_estate_data.parquet')
+    os.remove(path)
     return
 
 @flow
