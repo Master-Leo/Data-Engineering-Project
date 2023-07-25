@@ -6,12 +6,18 @@ from typing import List, Tuple
 from census import Census 
 from us import states
 from prefect import flow, task
-from google.cloud import storage
+from prefect_gcp.cloud_storage import GcsBucket
+from prefect.blocks.system import Secret
 
-from config import api_key, project_bucket
+json = Secret.load("json-path")
+
+api = Secret.load("api-key")
+
+json_path = json.get()
+api_key = api.get()
 
 @task(log_prints=True, tags=['extract'])
-def extract_demographic_data(year: int, state: str, api_key: str) -> List[pd.DataFrame, pd.DataFrame, pd.DataFrame]: 
+def extract_demographic_data(year: int, state: str, api_key: str) -> List[pd.DataFrame]:
 
     c = Census(api_key, year=year)
 
@@ -111,7 +117,7 @@ def extract_demographic_data(year: int, state: str, api_key: str) -> List[pd.Dat
     return state_df, city_df, zip_code_df
 
 @task(log_prints=True)
-def transform_data(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df: pd.DataFrame) -> List[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def transform_data(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df: pd.DataFrame) -> List[pd.DataFrame]:
     state_df = state_df[['year', 'state', 'total_population', 'population_aged_17_to_19', 'population_aged_20_to_24', 'total_means_of_transportation', 'vehicle_usage',
                          'public_transportation', 'walked', 'bicycle', 'other_means_of_transportation']]
     city_df = city_df[['year', 'city', 'total_population', 'population_aged_17_to_19', 'population_aged_20_to_24', 'total_means_of_transportation', 'vehicle_usage',
@@ -141,10 +147,7 @@ def transform_data(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df: p
 
 
 def write_gcs(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df: pd.DataFrame, dataset_state_file: str, dataset_city_file: str, dataset_zip_file: str) -> None:
-    bucket_name = project_bucket
-    client = storage.Client()
-    bucket = client.get_bucket(bucket_name)
-
+    gcp_bucket = GcsBucket.load("project-bucket")
     datasets = [state_df, city_df, zip_code_df]
     filenames = [dataset_state_file, dataset_city_file, dataset_zip_file]
 
@@ -153,13 +156,13 @@ def write_gcs(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df: pd.Dat
         df.to_parquet(path, compression='gzip')
 
         destination = str(path)
-        # Extract the relative path within the data directory
+        # # Extract the relative path within the data directory
         relative_path = destination.split('data/')[1]
+
         # Construct the final destination path within the bucket
         final_destination = f'data/{relative_path}'
-        gcp = bucket.blob(final_destination)
-        gcp.upload_from_filename(destination)
-        os.remove(path)
+        gcp_bucket.upload_from_path(from_path=destination, to_path=final_destination)
+        path.unlink()
 
     return
 

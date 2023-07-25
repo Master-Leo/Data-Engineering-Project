@@ -6,12 +6,18 @@ from typing import List, Tuple
 from census import Census 
 from us import states
 from prefect import flow, task
-from google.cloud import storage
+from prefect_gcp.cloud_storage import GcsBucket
+from prefect.blocks.system import Secret
 
-from config import api_key, project_bucket
+json = Secret.load("json-path")
+
+api = Secret.load("api-key")
+
+json_path = json.get()
+api_key = api.get()
 
 @task(log_prints=True, tags=['extract'])
-def extract_geographic_data(year: int, state: str, api_key: str) -> List[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def extract_geographic_data(year: int, state: str, api_key: str) -> List[pd.DataFrame]:
     c = Census(api_key, year=year)
 
     variables = [
@@ -98,7 +104,7 @@ def extract_geographic_data(year: int, state: str, api_key: str) -> List[pd.Data
     return state_df, city_df, zip_code_df
 
 @task(log_prints=True)
-def transform_data(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df : pd.DataFrame) -> List[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def transform_data(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df : pd.DataFrame) -> List[pd.DataFrame]:
     
     state_df = state_df[['year','state', 'disability_status', 'health_insurance_coverage', 'geographical_mobility', 'means_of_transportation_to_work', 
                          'internet_subscriptions_in_household']]
@@ -129,10 +135,7 @@ def transform_data(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df : 
 
 
 def write_gcs(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df: pd.DataFrame, dataset_state_file: str, dataset_city_file: str, dataset_zip_file: str) -> None:
-    bucket_name = project_bucket
-    client = storage.Client()
-    bucket = client.get_bucket(bucket_name)
-
+    gcp_bucket = GcsBucket.load("project-bucket")
     datasets = [state_df, city_df, zip_code_df]
     filenames = [dataset_state_file, dataset_city_file, dataset_zip_file]
 
@@ -141,13 +144,13 @@ def write_gcs(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df: pd.Dat
         df.to_parquet(path, compression='gzip')
 
         destination = str(path)
-        # Extract the relative path within the data directory
+        # # Extract the relative path within the data directory
         relative_path = destination.split('data/')[1]
+
         # Construct the final destination path within the bucket
         final_destination = f'data/{relative_path}'
-        gcp = bucket.blob(final_destination)
-        gcp.upload_from_filename(destination)
-        os.remove(path)
+        gcp_bucket.upload_from_path(from_path=destination, to_path=final_destination)
+        path.unlink()
 
     return
 
