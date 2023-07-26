@@ -1,0 +1,3 @@
+{
+  "etl-econ-parent-flow": "flows/econ_to_gcp.py:etl_econ_parent_flow"
+}

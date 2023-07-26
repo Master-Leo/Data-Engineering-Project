@@ -1,8 +1,11 @@
 census==0.8.20
 pandas==1.5.2
-prefect==2.7.7
-prefect-sqlalchemy==0.2.2
-prefect-gcp[cloud_storage]==0.2.4
+pathlib==1.0.1
+prefect>=2.10.7
+# prefect-sqlalchemy==0.2.2
+# prefect-docker>=0.3.1
+prefect-gcp
+prefect-gcp[cloud_storage]
 protobuf==4.21.11
 pyarrow==10.0.1
 pandas-gbq==0.18.1

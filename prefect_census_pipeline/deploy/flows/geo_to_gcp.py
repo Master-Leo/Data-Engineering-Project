@@ -104,7 +104,7 @@ def extract_geographic_data(year: int, state: str, api_key: str) -> List[pd.Data
     return state_df, city_df, zip_code_df
 
 @task(log_prints=True)
-def transform_data(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df : pd.DataFrame) -> List[pd.DataFrame]:
+def transform_geo_data(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df : pd.DataFrame) -> List[pd.DataFrame]:
     
     state_df = state_df[['year','state', 'disability_status', 'health_insurance_coverage', 'geographical_mobility', 'means_of_transportation_to_work', 
                          'internet_subscriptions_in_household']]
@@ -134,13 +134,13 @@ def transform_data(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df : 
     return state_df, city_df, zip_code_df
 
 
-def write_gcs(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df: pd.DataFrame, dataset_state_file: str, dataset_city_file: str, dataset_zip_file: str) -> None:
+def write_geo_to_gcs(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df: pd.DataFrame, dataset_state_file: str, dataset_city_file: str, dataset_zip_file: str) -> None:
     gcp_bucket = GcsBucket.load("project-bucket")
     datasets = [state_df, city_df, zip_code_df]
     filenames = [dataset_state_file, dataset_city_file, dataset_zip_file]
 
     for df, filename in zip(datasets, filenames):
-        path = Path(f'data/geographic/{filename}.parquet')
+        path = Path(f'/opt/prefect/flows/data/geographic/{filename}.parquet')
         df.to_parquet(path, compression='gzip')
 
         destination = str(path)
@@ -155,21 +155,21 @@ def write_gcs(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df: pd.Dat
     return
 
 @flow()  
-def etl_api_to_gcs(year: int, state: str, api_key: str) -> None:
+def api_geo_to_gcs(year: int, state: str, api_key: str) -> None:
     dataset_state_file = f'state/{year}_states_geographic_data'
     dataset_city_file = f'city/{year}_{state}_city_geographic_data'
     dataset_zip_file = f'zip_code/{year}_zip_geographic_data'
 
     state_df, city_df, zip_code_df = extract_geographic_data(year, state, api_key)
-    state_df, city_df, zip_code_df  = transform_data(state_df, city_df, zip_code_df)
-    write_gcs(state_df, city_df, zip_code_df, dataset_state_file, dataset_city_file, dataset_zip_file)
+    state_df, city_df, zip_code_df  = transform_geo_data(state_df, city_df, zip_code_df)
+    write_geo_to_gcs(state_df, city_df, zip_code_df, dataset_state_file, dataset_city_file, dataset_zip_file)
 
 @flow
 def etl_geo_parent_flow() -> None:
     years = list(range(2021, 2015, -1))
     states_list = ['California','Florida','New York','Texas','Pennsylvania']
 
-    [etl_api_to_gcs(year, state, api_key) for state in states_list for year in years]
+    [api_geo_to_gcs(year, state, api_key) for state in states_list for year in years]
 
 
 if __name__ == '__main__':

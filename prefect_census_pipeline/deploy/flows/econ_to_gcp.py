@@ -8,14 +8,14 @@ from us import states
 from prefect import flow, task
 from prefect_gcp.cloud_storage import GcsBucket
 from prefect.blocks.system import Secret
-
+print(f'Library modules were successul')
 json = Secret.load("json-path")
 
 api = Secret.load("api-key")
 
 json_path = json.get()
 api_key = api.get()
-
+print(f'Secrets have been loaded')
 @task(log_prints=True, tags=['extract'])
 def extract_economic_data(year: int, state: str, api_key: str) -> List[pd.DataFrame]:
     # Create Census object
@@ -98,7 +98,7 @@ def extract_economic_data(year: int, state: str, api_key: str) -> List[pd.DataFr
     return state_df, city_df, zip_code_df
 
 @task(log_prints=True)
-def transform_data(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df : pd.DataFrame) -> List[pd.DataFrame]:
+def transform_econ_data(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df : pd.DataFrame) -> List[pd.DataFrame]:
     def calculate_rates(df: pd.DataFrame) -> pd.DataFrame:
         df["poverty_rate"] = 100 * df['poverty_count'].astype(int) / df["population"].astype(int)
         df["unemployment_rate"] = 100 * df["unemployment_count"].astype(int) / df["population"].astype(int)
@@ -136,14 +136,14 @@ def transform_data(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df : 
 
     return state_df, city_df, zip_code_df
 
-
-def write_gcs(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df: pd.DataFrame, dataset_state_file: str, dataset_city_file: str, dataset_zip_file: str) -> None:
+    
+def write_econ_to_gcs(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df: pd.DataFrame, dataset_state_file: str, dataset_city_file: str, dataset_zip_file: str) -> None:
     gcp_bucket = GcsBucket.load("project-bucket")
     datasets = [state_df, city_df, zip_code_df]
     filenames = [dataset_state_file, dataset_city_file, dataset_zip_file]
 
     for df, filename in zip(datasets, filenames):
-        path = Path(f'data/economic/{filename}.parquet')
+        path = Path(f'/opt/prefect/flows/data/economic/{filename}.parquet')
         df.to_parquet(path, compression='gzip')
 
         destination = str(path)
@@ -158,21 +158,21 @@ def write_gcs(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df: pd.Dat
     return
 
 @flow()  
-def etl_api_to_gcs(year: int, state: str, api_key: str) -> None:
+def api_econ_to_gcs(year: int, state: str, api_key: str) -> None:
     dataset_state_file = f'state/{year}_states_economic_data'
     dataset_city_file = f'city/{year}_{state}_city_economic_data'
     dataset_zip_file = f'zip_code/{year}_zip_economic_data'
 
     state_df, city_df, zip_code_df = extract_economic_data(year, state, api_key)
-    state_df, city_df, zip_code_df  = transform_data(state_df, city_df, zip_code_df)
-    write_gcs(state_df, city_df, zip_code_df, dataset_state_file, dataset_city_file, dataset_zip_file)
+    state_df, city_df, zip_code_df  = transform_econ_data(state_df, city_df, zip_code_df)
+    write_econ_to_gcs(state_df, city_df, zip_code_df, dataset_state_file, dataset_city_file, dataset_zip_file)
 
 @flow
 def etl_econ_parent_flow() -> None:
     years = list(range(2021, 2015, -1))
     states_list = ['California','Florida','New York','Texas','Pennsylvania']
 
-    [etl_api_to_gcs(year, state, api_key) for state in states_list for year in years]
+    [api_econ_to_gcs(year, state, api_key) for state in states_list for year in years]
 
 
 if __name__ == '__main__':

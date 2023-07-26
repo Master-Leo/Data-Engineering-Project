@@ -117,7 +117,7 @@ def extract_demographic_data(year: int, state: str, api_key: str) -> List[pd.Dat
     return state_df, city_df, zip_code_df
 
 @task(log_prints=True)
-def transform_data(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df: pd.DataFrame) -> List[pd.DataFrame]:
+def transform_demo_data(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df: pd.DataFrame) -> List[pd.DataFrame]:
     state_df = state_df[['year', 'state', 'total_population', 'population_aged_17_to_19', 'population_aged_20_to_24', 'total_means_of_transportation', 'vehicle_usage',
                          'public_transportation', 'walked', 'bicycle', 'other_means_of_transportation']]
     city_df = city_df[['year', 'city', 'total_population', 'population_aged_17_to_19', 'population_aged_20_to_24', 'total_means_of_transportation', 'vehicle_usage',
@@ -146,13 +146,13 @@ def transform_data(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df: p
     return state_df, city_df, zip_code_df
 
 
-def write_gcs(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df: pd.DataFrame, dataset_state_file: str, dataset_city_file: str, dataset_zip_file: str) -> None:
+def write_demo_to_gcs(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df: pd.DataFrame, dataset_state_file: str, dataset_city_file: str, dataset_zip_file: str) -> None:
     gcp_bucket = GcsBucket.load("project-bucket")
     datasets = [state_df, city_df, zip_code_df]
     filenames = [dataset_state_file, dataset_city_file, dataset_zip_file]
 
     for df, filename in zip(datasets, filenames):
-        path = Path(f'data/demographic/{filename}.parquet')
+        path = Path(f'/opt/prefect/flows/data/demographic/{filename}.parquet')
         df.to_parquet(path, compression='gzip')
 
         destination = str(path)
@@ -168,21 +168,21 @@ def write_gcs(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df: pd.Dat
 
 
 @flow()
-def etl_api_to_gcs(year: int, state: str, api_key: str) -> None:
+def api_demo_to_gcs(year: int, state: str, api_key: str) -> None:
     dataset_state_file = f'state/{year}_states_demographic_data'
     dataset_city_file = f'city/{year}_{state}_city_demographic_data'
     dataset_zip_file = f'zip_code/{year}_zip_demographic_data'
 
     state_df, city_df, zip_code_df = extract_demographic_data(year, state, api_key)
-    state_df, city_df, zip_code_df = transform_data(state_df, city_df, zip_code_df)
-    write_gcs(state_df, city_df, zip_code_df, dataset_state_file, dataset_city_file, dataset_zip_file)
+    state_df, city_df, zip_code_df = transform_demo_data(state_df, city_df, zip_code_df)
+    write_demo_to_gcs(state_df, city_df, zip_code_df, dataset_state_file, dataset_city_file, dataset_zip_file)
 
 @flow
 def etl_demo_parent_flow() -> None:
     years = list(range(2021, 2015, -1))
     states_list = ['California','Florida','New York','Texas','Pennsylvania']
 
-    [etl_api_to_gcs(year, state, api_key) for state in states_list for year in years]
+    [api_demo_to_gcs(year, state, api_key) for state in states_list for year in years]
 
 if __name__ == '__main__':
     etl_demo_parent_flow()
