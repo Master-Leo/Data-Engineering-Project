@@ -9,13 +9,6 @@ from prefect import flow, task
 from prefect_gcp.cloud_storage import GcsBucket
 from prefect.blocks.system import Secret
 
-json = Secret.load("json-path")
-
-api = Secret.load("api-key")
-
-json_path = json.get()
-api_key = api.get()
-
 @task(log_prints=True, tags=['extract'])
 def extract_geographic_data(year: int, state: str, api_key: str) -> List[pd.DataFrame]:
     c = Census(api_key, year=year)
@@ -155,7 +148,9 @@ def write_geo_to_gcs(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df:
     return
 
 @flow()  
-def api_geo_to_gcs(year: int, state: str, api_key: str) -> None:
+def api_geo_to_gcs(year: int, state: str) -> None:
+    api = Secret.load("api-key")
+    api_key = api.get()
     dataset_state_file = f'state/{year}_states_geographic_data'
     dataset_city_file = f'city/{year}_{state}_city_geographic_data'
     dataset_zip_file = f'zip_code/{year}_zip_geographic_data'
@@ -164,13 +159,11 @@ def api_geo_to_gcs(year: int, state: str, api_key: str) -> None:
     state_df, city_df, zip_code_df  = transform_geo_data(state_df, city_df, zip_code_df)
     write_geo_to_gcs(state_df, city_df, zip_code_df, dataset_state_file, dataset_city_file, dataset_zip_file)
 
-@flow
-def etl_geo_parent_flow() -> None:
-    years = list(range(2021, 2015, -1))
-    states_list = ['California','Florida','New York','Texas','Pennsylvania']
-
-    [api_geo_to_gcs(year, state, api_key) for state in states_list for year in years]
-
+@flow()
+def etl_geo_parent_flow(years: list[int],states_list: list[str]) -> None:
+    [api_geo_to_gcs(year, state) for state in states_list for year in years]
 
 if __name__ == '__main__':
-    etl_geo_parent_flow()
+    years = list(range(2021, 2014, -1))
+    states_list = ['California']
+    etl_geo_parent_flow(years,states_list)

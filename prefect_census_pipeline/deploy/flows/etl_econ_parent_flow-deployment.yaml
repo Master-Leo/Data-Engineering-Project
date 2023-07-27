@@ -1,0 +1,58 @@
+###
+### A complete description of a Prefect Deployment for flow 'etl-econ-parent-flow'
+###
+name: etl_test
+description: null
+version: b3817e63f54b127e4492e151de10bb0c
+# The work queue that will handle this deployment's runs
+work_queue_name: default
+work_pool_name: null
+tags: []
+parameters: {}
+schedule:
+  cron: 0 0 * * *
+  timezone: null
+  day_or: true
+is_schedule_active: null
+infra_overrides: {}
+infrastructure:
+  type: process
+  env: {}
+  labels: {}
+  name: null
+  command: null
+  stream_output: true
+  working_dir: null
+  block_type_slug: process
+  _block_type_slug: process
+
+###
+### DO NOT EDIT BELOW THIS LINE
+###
+flow_name: etl-econ-parent-flow
+manifest_path: null
+storage: null
+path: /Users/og/Desktop/Final_Project/Data-Engineering-Project/prefect_census_pipeline/deploy/flows
+entrypoint: econ_test.py:etl_econ_parent_flow
+parameter_openapi_schema:
+  title: Parameters
+  type: object
+  properties:
+    years:
+      title: years
+      position: 0
+      type: array
+      items:
+        type: integer
+    states_list:
+      title: states_list
+      position: 1
+      type: array
+      items:
+        type: string
+  required:
+  - years
+  - states_list
+  definitions: null
+timestamp: '2023-07-27T05:10:04.284664+00:00'
+triggers: []

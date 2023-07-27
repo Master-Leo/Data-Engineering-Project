@@ -8,14 +8,8 @@ from us import states
 from prefect import flow, task
 from prefect_gcp.cloud_storage import GcsBucket
 from prefect.blocks.system import Secret
-print(f'Library modules were successul')
-json = Secret.load("json-path")
 
-api = Secret.load("api-key")
 
-json_path = json.get()
-api_key = api.get()
-print(f'Secrets have been loaded')
 @task(log_prints=True, tags=['extract'])
 def extract_economic_data(year: int, state: str, api_key: str) -> List[pd.DataFrame]:
     # Create Census object
@@ -158,7 +152,9 @@ def write_econ_to_gcs(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df
     return
 
 @flow()  
-def api_econ_to_gcs(year: int, state: str, api_key: str) -> None:
+def api_econ_to_gcs(year: int, state: str) -> None:
+    api = Secret.load("api-key")
+    api_key = api.get()
     dataset_state_file = f'state/{year}_states_economic_data'
     dataset_city_file = f'city/{year}_{state}_city_economic_data'
     dataset_zip_file = f'zip_code/{year}_zip_economic_data'
@@ -167,13 +163,11 @@ def api_econ_to_gcs(year: int, state: str, api_key: str) -> None:
     state_df, city_df, zip_code_df  = transform_econ_data(state_df, city_df, zip_code_df)
     write_econ_to_gcs(state_df, city_df, zip_code_df, dataset_state_file, dataset_city_file, dataset_zip_file)
 
-@flow
-def etl_econ_parent_flow() -> None:
-    years = list(range(2021, 2015, -1))
-    states_list = ['California','Florida','New York','Texas','Pennsylvania']
-
-    [api_econ_to_gcs(year, state, api_key) for state in states_list for year in years]
-
+@flow()
+def etl_econ_parent_flow(years: list[int],states_list: list[str]) -> None:
+    [api_econ_to_gcs(year, state) for state in states_list for year in years]
 
 if __name__ == '__main__':
-    etl_econ_parent_flow()
+    years = list(range(2021, 2014, -1))
+    states_list = ['California']
+    etl_econ_parent_flow(years,states_list)

@@ -1,8 +1,8 @@
 FROM prefecthq/prefect:2-python3.9
-# RUN pip install --upgrade --trusted-host pypi.python.org --no-cache-dir
 COPY requirements.txt .
 RUN pip install -r requirements.txt --trusted-host pypi.python.org --no-cache-dir
 ADD flows /opt/prefect/flows
+ADD /User/og/.kaggle/kaggle.json /root/.kaggle/
 
 RUN mkdir -p /opt/prefect/flows/data/demographic/state
 RUN mkdir -p /opt/prefect/flows/data/demographic/city

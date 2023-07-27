@@ -1,4 +1,5 @@
 census==0.8.20
+kaggle
 pandas==1.5.2
 pathlib==1.0.1
 prefect>=2.10.7
@@ -6,9 +7,9 @@ prefect>=2.10.7
 # prefect-docker>=0.3.1
 prefect-gcp
 prefect-gcp[cloud_storage]
-protobuf==4.21.11
+# protobuf==4.21.11
 pyarrow==10.0.1
 pandas-gbq==0.18.1
-psycopg2-binary==2.9.5
-sqlalchemy==1.4.46
+# psycopg2-binary==2.9.5
+# sqlalchemy==1.4.46
 us==2.0.2
