@@ -8,6 +8,9 @@ prefect>=2.10.7
 prefect-gcp
 prefect-gcp[cloud_storage]
 # protobuf==4.21.11
+pyspark==3.1.1
+pylint
+pycco
 pyarrow==10.0.1
 pandas-gbq==0.18.1
 # psycopg2-binary==2.9.5

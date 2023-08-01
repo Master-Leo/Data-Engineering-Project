@@ -147,7 +147,7 @@ def write_geo_to_gcs(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df:
 
     return
 
-@flow()  
+@flow()
 def api_geo_to_gcs(year: int, state: str) -> None:
     api = Secret.load("api-key")
     api_key = api.get()

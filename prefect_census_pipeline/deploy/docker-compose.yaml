@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  deploy_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bruceleo31/gcp_deploy:latest
+    environment:
+      - PYSPARK_MAJOR_PYTHON_VERSION=3
+    volumes:
+      - .:/opt/prefect/
+    network_mode: "host"
+    restart: no
+
+  worker_spark:
+    build:
+      context: .
+      dockerfile: Dockerfile_worker_spark
+    restart: no
+    depends_on:
+      - deploy_service
+
+  worker_econ:
+    build:
+      context: .
+      dockerfile: Dockerfile_worker_econ
+    restart: no
+    depends_on:
+      - deploy_service
+

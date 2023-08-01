@@ -1,0 +1,6 @@
+# Dockerfile_worker_spark
+FROM prefecthq/prefect:0.15.4-python3.8
+
+RUN prefect config set PREFECT_API_URL='https://127.0.0.1:4200/api'
+
+CMD ["prefect", "worker", "start", "--pool", "worker-spark"]

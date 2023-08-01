@@ -160,7 +160,6 @@ def write_demo_to_gcs(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df
 
     return
 
-
 @flow()
 def api_demo_to_gcs(year: int, state: str) -> None:
     api = Secret.load("api-key")
@@ -173,7 +172,7 @@ def api_demo_to_gcs(year: int, state: str) -> None:
     state_df, city_df, zip_code_df = transform_demo_data(state_df, city_df, zip_code_df)
     write_demo_to_gcs(state_df, city_df, zip_code_df, dataset_state_file, dataset_city_file, dataset_zip_file)
 
-@flow
+@flow()
 def etl_demo_parent_flow(years: list[int],states_list: list[str]) -> None:
     [api_demo_to_gcs(year, state) for state in states_list for year in years]
 

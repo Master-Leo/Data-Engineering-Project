@@ -1,0 +1,6 @@
+{
+  "etl-demo-parent-flow": "flows/demo_to_gcp.py:etl_demo_parent_flow",
+  "etl-econ-parent-flow": "flows/econ_to_gcp.py:etl_econ_parent_flow",
+  "etl-geo-parent-flow": "flows/geo_to_gcp.py:etl_geo_parent_flow",
+  "etl-real-estate-parent-flow": "flows/realestate_to_gcp.py:etl_real_estate_parent_flow"
+}

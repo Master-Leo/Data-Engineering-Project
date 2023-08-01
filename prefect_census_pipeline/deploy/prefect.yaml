@@ -29,146 +29,90 @@ pull:
 
 # the deployments section allows you to provide configuration for deploying flows
 deployments:
+
+- name: spark-deployment
+    version: null
+    tags: []
+    entrypoint: flows/main.py:spark_pipeline
+    work_pool:
+      name: production-pool
+      work_queue_name: spark
+      job_variables:
+        image: '{{ build_image.image }}'
+
+
 - name: econ-deployment
   version: null
   tags: []
   description: null
   schedule:
-    cron: 0 0 * * *
-    timezone: null
+    cron: 0 0 1 1 *
+    timezone: America/Los_Angeles
     day_or: true
   flow_name: null
   entrypoint: flows/econ_to_gcp.py:etl_econ_parent_flow
-parameter_openapi_schema:
-  title: Parameters
-  type: object
-  properties:
-    years:
-      title: years
-      position: 0
-      type: array
-      items:
-        type: integer
-    states_list:
-      title: states_list
-      position: 1
-      type: array
-      items:
-        type: string
-  required:
-  - years
-  - states_list
-  definitions: null
+  parameters:
+    years: [2021]
+    states_list: ['California']
   work_pool:
     name: production-pool
-    work_queue_name: 
+    work_queue_name: econ-gcp
     job_variables:
       image: '{{ build_image.image }}'
 
-- name: demo-deployment
-  version: null
-  tags: []
-  description: null
-  schedule:
-    cron: 0 0 * * *
-    timezone: null
-    day_or: true
-  flow_name: null
-  entrypoint: flows/demo_to_gcp.py:etl_demo_parent_flow
-parameter_openapi_schema:
-  title: Parameters
-  type: object
-  properties:
-    years:
-      title: years
-      position: 0
-      type: array
-      items:
-        type: integer
-    states_list:
-      title: states_list
-      position: 1
-      type: array
-      items:
-        type: string
-  required:
-  - years
-  - states_list
-  definitions: null
-  work_pool:
-    name: production-pool
-    work_queue_name: 
-    job_variables:
-      image: '{{ build_image.image }}'
+# - name: demo-deployment
+#   version: null
+#   tags: []
+#   description: null
+#   schedule:
+#     cron: 0 0 1 1 * 
+#     timezone: America/Los_Angeles
+#     day_or: true
+#   flow_name: null
+#   entrypoint: flows/demo_to_gcp.py:etl_demo_parent_flow
+#   parameters:
+#     years: [2021]
+#     states_list: ['California']
+#   work_pool:
+#     name: production-pool
+#     work_queue_name: demo-gcp
+#     job_variables:
+#       image: '{{ build_image.image }}'
 
-- name: geo-deployment
-  version: null
-  tags: []
-  description: null
-  schedule:
-    cron: 0 0 * * *
-    timezone: null
-    day_or: true  
-  flow_name: null
-  entrypoint: flows/geo_to_gcp.py:etl_geo_parent_flow
-parameter_openapi_schema:
-  title: Parameters
-  type: object
-  properties:
-    years:
-      title: years
-      position: 0
-      type: array
-      items:
-        type: integer
-    states_list:
-      title: states_list
-      position: 1
-      type: array
-      items:
-        type: string
-  required:
-  - years
-  - states_list
-  definitions: null
-  work_pool:
-    name: production-pool
-    work_queue_name: 
-    job_variables:
-      image: '{{ build_image.image }}'
+# - name: geo-deployment
+#   version: null
+#   tags: []
+#   description: null
+#   schedule:
+#     cron: 0 0 1 1 * 
+#     timezone: America/Los_Angeles
+#     day_or: true  
+#   flow_name: null
+#   entrypoint: flows/geo_to_gcp.py:etl_geo_parent_flow
+#   parameters:
+#     years: [2021]
+#     states_list: ['California']
+#   work_pool:
+#     name: production-pool
+#     work_queue_name: geo-gcp
+#     job_variables:
+#       image: '{{ build_image.image }}'
 
-- name: realestate-deployment
-  version: null
-  tags: []
-  description: null
-  schedule:
-    cron: 0 0 * * *
-    timezone: null
-    day_or: true 
-  flow_name: null
-  entrypoint: flows/geo_to_gcp.py:etl_geo_parent_flow
-parameter_openapi_schema:
-  title: Parameters
-  type: object
-  properties:
-    years:
-      title: years
-      position: 0
-      type: array
-      items:
-        type: integer
-    states_list:
-      title: states_list
-      position: 1
-      type: array
-      items:
-        type: string
-  required:
-  - years
-  - states_list
-  definitions: null
-  work_pool:
-    name: production-pool
-    work_queue_name: 
-    job_variables:
-      image: '{{ build_image.image }}'
+# - name: realestate-deployment
+#   version: null
+#   tags: []
+#   description: null
+#   schedule:
+#     cron: 0 0 1 1 *
+#     timezone: America/Los_Angeles
+#     day_or: true 
+#   flow_name: null
+#   entrypoint: flows/realestate_to_gcp.py:etl_real_estate_parent_flow
+#   parameters:
+#     years: [2021]
+#     states_list: ['California']
+#   work_pool:
+#     name: production-pool
+#     work_queue_name: realestate-gcp
+#     job_variables:
+#       image: '{{ build_image.image }}'

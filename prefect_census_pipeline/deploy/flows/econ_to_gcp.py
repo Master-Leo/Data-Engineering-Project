@@ -130,7 +130,7 @@ def transform_econ_data(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_
 
     return state_df, city_df, zip_code_df
 
-    
+@task
 def write_econ_to_gcs(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df: pd.DataFrame, dataset_state_file: str, dataset_city_file: str, dataset_zip_file: str) -> None:
     gcp_bucket = GcsBucket.load("project-bucket")
     datasets = [state_df, city_df, zip_code_df]
@@ -151,7 +151,7 @@ def write_econ_to_gcs(state_df: pd.DataFrame, city_df: pd.DataFrame, zip_code_df
 
     return
 
-@flow()  
+@flow()
 def api_econ_to_gcs(year: int, state: str) -> None:
     api = Secret.load("api-key")
     api_key = api.get()
